@@ -184,9 +184,10 @@ KBest_table.index = features_list[1:]
 print KBest_table.sort_values(by = 'scoreSKB', ascending = False)
 print ""
 
-features_selected = pd.Series(KBest_table.sort_values(by = 'scoreSKB', ascending = False).index[:5])
+features_selected = pd.Series(KBest_table.sort_values(by = 'scoreSKB', ascending = False).index[:])
+features_selected = pd.Series([features_selected[i] for i in [0, 1, 2, 3, 4]]) # Selected features
 features_selected = pd.Series("poi").append(features_selected, ignore_index=True)
-print "Then the 5 most important features are:", '\n', features_selected[1:]
+print "Then the most important features selected are:", '\n', features_selected[1:]
 print ""
 print "--------------------------------"
 
@@ -197,7 +198,7 @@ print "--------------------------------"
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
 # Provided to give you a starting point. Try a variety of classifiers.
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -213,18 +214,18 @@ features_train, features_test, labels_train, labels_test = \
 
 ## Create pipeline
 scaler = MinMaxScaler()
-clfDT = DecisionTreeClassifier()
-clfSVC = SVC()
-clfKN = KNeighborsClassifier()
+clf_dt = DecisionTreeClassifier()
+clf_svc = SVC()
+clf_kn = KNeighborsClassifier()
 
 steps = [
     #Preprocessing
     #('min_max_scaler', scaler),
 
     # Classifier
-    ('dtc', clfDT)
-    #('svc', clfSVC)
-    #('knc', clfKN)
+    ('dtc', clf_dt)
+    #('svc', clf_svc)
+    #('knc', clf_kn)
     ]
 
 pipeline = Pipeline(steps)
@@ -246,7 +247,14 @@ GridParams = dict(
                   #knc__leaf_size=[1, 10, 30, 60]
                   )
 
-clfGS = GridSearchCV(pipeline, param_grid = GridParams, scoring = "f1")
+# Cross-validation for parameter tuning in grid search
+sss = StratifiedShuffleSplit(
+    n_splits = 10,
+    test_size = 0.3,
+    random_state = 42
+    )
+
+clfGS = GridSearchCV(pipeline, param_grid = GridParams, cv = sss, scoring = "f1")
 clfGS.fit(features_train, labels_train)
 
 ## Finally choose the best model for predict
